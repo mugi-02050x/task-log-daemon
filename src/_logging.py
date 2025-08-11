@@ -11,7 +11,6 @@ class LoggerManager:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
                 cls._instance._setup_done = False
-                cls._instance._fileno_dict = {}
             return cls._instance
 
     def setup(self, stdout_redirect_file_name='task-log-daemon.log', stderr_redirect_file_name='task-log-daemon.err'):
@@ -23,12 +22,6 @@ class LoggerManager:
 
         self.stdout_path = os.path.join(self.log_dir, stdout_redirect_file_name)
         self.stderr_path = os.path.join(self.log_dir, stderr_redirect_file_name)
-
-        # ファイルを開いてFDを記録（デーモン起動時にfiles_preserveとして渡す情報を保持）
-        with open(self.stdout_path, 'a+', buffering=1) as file:
-            self._fileno_dict[stdout_redirect_file_name] = file.fileno()
-        with open(self.stderr_path, 'a+', buffering=1) as file:
-            self._fileno_dict[stderr_redirect_file_name] = file.fileno()
 
         self._setup_logger(self.stdout_path, self.stderr_path)
         self._setup_done = True
@@ -59,12 +52,8 @@ class LoggerManager:
         return logging.getLogger(name)
 
     @property
-    def fileno_dict(self):
-        return dict(self._fileno_dict)  # コピーを返す
-
-    @property
     def fileno_list(self):
-        return list(self._fileno_dict.values())  # リストで返す
+        return [handler.stream.fileno() for handler in logging.getLogger().handlers]
 
 # モジュールレベルでシングルトン取得関数を用意
 def get_logger(name):
