@@ -31,3 +31,23 @@ class LinuxSocket:
             self.server_socket.close()
         if os.path.exists(self.sock_path):
             os.remove(self.sock_path)
+
+    def accept(self):
+        try:
+            conn, _ = self.server_socket.accept()
+            with conn:
+                data = conn.recv(1024).decode().strip()
+                if not data:
+                    return None
+                logger.info(f"Received message: {data}")
+                conn.sendall(f"ACK: {data}".encode())
+                return data
+        except socket.timeout:
+            return None
+        except socket.error as e:
+            logger.error(f"An error occurred with the Linux socket.: {e}")
+            raise LinuxSocketException("Linux socket Error")
+
+class LinuxSocketException(Exception):
+    def __init__(self, message):
+        super().__init__(message)

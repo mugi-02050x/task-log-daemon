@@ -1,7 +1,7 @@
 import daemon
 from daemon.pidfile import TimeoutPIDLockFile
 from _logging import get_logger_manager, get_logger
-from linux_socket import LinuxSocket
+from linux_socket import LinuxSocket, LinuxSocketException
 import signal
 import sys
 import time
@@ -22,20 +22,11 @@ class LinuxDaemon:
 
         while self.running:
             try:
-                conn, _ = self.linux_socket.server_socket.accept()
-                with conn:
-                    data = conn.recv(1024).decode().strip()
-                    if not data:
-                        continue
-                    logger.info(f"Received message: {data}")
-                    conn.sendall(f"ACK: {data}".encode())
-
-                    # if data.lower() == "stop":
-                    #     self.running = False
-            except socket.timeout:
-                continue
-            except socket.error as e:
-                logger.error(f"Socket error: {e}")
+                data = self.linux_socket.accept()
+                if data is not None:
+                    logger.info(f"data: {data}")
+            except Exception as e:
+                logger.error(f"An error occurred while the daemon was running.: {e}")
                 break
         logger.info("Daemon is stopped")
         self.linux_socket.cleanup_socket()
